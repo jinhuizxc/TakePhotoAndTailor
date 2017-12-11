@@ -22,7 +22,7 @@ import kr.co.namee.permissiongen.PermissionGen;
 import kr.co.namee.permissiongen.PermissionSuccess;
 
 /**
- * Android 7.0 拍照裁剪
+ * Android 7.0 拍照、图库裁剪
  */
 public class MainActivity extends AppCompatActivity {
 
