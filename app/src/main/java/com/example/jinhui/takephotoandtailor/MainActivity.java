@@ -8,6 +8,7 @@ import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -26,6 +27,7 @@ import kr.co.namee.permissiongen.PermissionSuccess;
  */
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = MainActivity.class.getSimpleName();
     private Button mBtnTakePhoto;
     private Button mBtnSelectPhoto;
     private TextView mTvPath;
@@ -120,17 +122,27 @@ public class MainActivity extends AppCompatActivity {
 
     @PermissionSuccess(requestCode = LQRPhotoSelectUtils.REQ_TAKE_PHOTO)
     private void takePhoto() {
+        Log.e(TAG, "拍照权限请求成功");
         mLqrPhotoSelectUtils.takePhoto();
     }
 
     @PermissionSuccess(requestCode = LQRPhotoSelectUtils.REQ_SELECT_PHOTO)
     private void selectPhoto() {
+        Log.e(TAG, "图库权限请求成功");
         mLqrPhotoSelectUtils.selectPhoto();
     }
 
     @PermissionFail(requestCode = LQRPhotoSelectUtils.REQ_TAKE_PHOTO)
     private void showTip1() {
         //        Toast.makeText(getApplicationContext(), "不给我权限是吧，那就别玩了", Toast.LENGTH_SHORT).show();
+        Log.e(TAG, "拍照权限请求失败");
+        showDialog();
+    }
+
+    @PermissionFail(requestCode = LQRPhotoSelectUtils.REQ_SELECT_PHOTO)
+    private void showTip2() {
+        //        Toast.makeText(getApplicationContext(), "不给我权限是吧，那就别玩了", Toast.LENGTH_SHORT).show();
+        Log.e(TAG, "图库权限请求失败");
         showDialog();
     }
 

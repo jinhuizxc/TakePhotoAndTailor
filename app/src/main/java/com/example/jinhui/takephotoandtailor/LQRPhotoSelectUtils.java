@@ -28,16 +28,14 @@ public class LQRPhotoSelectUtils {
     public static final int REQ_ZOOM_PHOTO = 10003;
 
     private Activity mActivity;
-    private boolean mShouldCrop = false;//是否要裁剪（默认不裁剪）
-    PhotoSelectListener mListener;
-    //FileProvider的主机名：一般是包名+".fileprovider"，严格上是build.gradle中defaultConfig{}中applicationId对应的值+".fileprovider"
-    private String AUTHORITIES = "packageName" + ".fileprovider";
     //拍照或剪切后图片的存放位置(参考file_provider_paths.xml中的路径)
     private String imgPath = Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + String.valueOf(System.currentTimeMillis()) + ".jpg";
-
-    private File mOutputFile = null;
+    //FileProvider的主机名：一般是包名+".fileprovider"，严格上是build.gradle中defaultConfig{}中applicationId对应的值+".fileprovider"
+    private String AUTHORITIES = "packageName" + ".fileprovider";
+    private boolean mShouldCrop = false;//是否要裁剪（默认不裁剪）
     private Uri mOutputUri = null;
     private File mInputFile;
+    private File mOutputFile = null;
 
     //剪裁图片宽高比
     private int mAspectX = 1;
@@ -45,6 +43,8 @@ public class LQRPhotoSelectUtils {
     //剪裁图片大小
     private int mOutputX = 800;
     private int mOutputY = 480;
+    PhotoSelectListener mListener;
+
     /**
      * 可指定是否在拍照或从图库选取照片后进行裁剪
      * <p>
@@ -54,7 +54,7 @@ public class LQRPhotoSelectUtils {
      * @param listener   选取图片监听
      * @param shouldCrop 是否裁剪
      */
-    public LQRPhotoSelectUtils(Activity activity, PhotoSelectListener listener, boolean shouldCrop){
+    public LQRPhotoSelectUtils(Activity activity, PhotoSelectListener listener, boolean shouldCrop) {
         mActivity = activity;
         mListener = listener;
         mShouldCrop = shouldCrop;
@@ -80,7 +80,6 @@ public class LQRPhotoSelectUtils {
         mOutputY = outputY;
     }
 
-
     /**
      * 设置FileProvider的主机名：一般是包名+".fileprovider"，严格上是build.gradle中defaultConfig{}中applicationId对应的值+".fileprovider"
      * <p>
@@ -102,27 +101,6 @@ public class LQRPhotoSelectUtils {
     }
 
     /**
-     * 产生图片的路径，带文件夹和文件名，文件名为当前毫秒数
-     */
-    private String generateImgePath() {
-        return getExternalStoragePath() + File.separator + String.valueOf(System.currentTimeMillis()) + ".jpg";
-        //        return Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + String.valueOf(System.currentTimeMillis()) + ".jpg";//测试用
-    }
-
-    /**
-     * 获取SD下的应用目录
-     */
-    private String getExternalStoragePath() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(Environment.getExternalStorageDirectory().getAbsolutePath());
-        sb.append(File.separator);
-        String ROOT_DIR = "Android/data/" + mActivity.getPackageName();
-        sb.append(ROOT_DIR);
-        sb.append(File.separator);
-        return sb.toString();
-    }
-
-    /**
      * 拍照获取
      */
     public void takePhoto() {
@@ -131,6 +109,7 @@ public class LQRPhotoSelectUtils {
             imgFile.getParentFile().mkdirs();
         }
         Uri imgUri = null;
+
         //        if (Build.VERSION.SDK_INT >= 24) {//这里用这种传统的方法无法调起相机
         //            imgUri = FileProvider.getUriForFile(mActivity, AUTHORITIES, imgFile);
         //        } else {
@@ -144,15 +123,18 @@ public class LQRPhotoSelectUtils {
            3.解决方案
             下面是打开系统相机的方法，做了android各个版本的兼容:
         * */
-        if(Build.VERSION.SDK_INT < 24){
+
+        if (Build.VERSION.SDK_INT < 24) {
             // 从文件中创建uri
             imgUri = Uri.fromFile(imgFile);
-        }else {
+        } else {
             //兼容android7.0 使用共享文件的形式
             ContentValues contentValues = new ContentValues(1);
             contentValues.put(MediaStore.Images.Media.DATA, imgFile.getAbsolutePath());
             imgUri = mActivity.getApplication().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
         }
+
+
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, imgUri);
         mActivity.startActivityForResult(intent, REQ_TAKE_PHOTO);
@@ -165,6 +147,35 @@ public class LQRPhotoSelectUtils {
         Intent intent = new Intent(Intent.ACTION_PICK, null);
         intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
         mActivity.startActivityForResult(intent, REQ_SELECT_PHOTO);
+    }
+
+    private void zoomPhoto(File inputFile, File outputFile) {
+        File parentFile = outputFile.getParentFile();
+        if (!parentFile.exists()) {
+            parentFile.mkdirs();
+        }
+        Intent intent = new Intent("com.android.camera.action.CROP");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            intent.setDataAndType(getImageContentUri(mActivity, inputFile), "image/*");
+        } else {
+            intent.setDataAndType(Uri.fromFile(inputFile), "image/*");
+        }
+        intent.putExtra("crop", "true");
+
+        //设置剪裁图片宽高比
+        intent.putExtra("mAspectX", mAspectX);
+        intent.putExtra("mAspectY", mAspectY);
+
+        //设置剪裁图片大小
+        intent.putExtra("mOutputX", mOutputX);
+        intent.putExtra("mOutputY", mOutputY);
+
+        // 是否返回uri
+        intent.putExtra("return-data", false);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(outputFile));
+        intent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString());
+
+        mActivity.startActivityForResult(intent, REQ_ZOOM_PHOTO);
     }
 
     public void attachToActivityForResult(int requestCode, int resultCode, Intent data) {
@@ -223,40 +234,6 @@ public class LQRPhotoSelectUtils {
     }
 
     /**
-     * 裁剪图片
-     * @param inputFile
-     * @param outputFile
-     */
-    private void zoomPhoto(File inputFile, File outputFile) {
-        File parentFile = outputFile.getParentFile();
-        if (!parentFile.exists()) {
-            parentFile.mkdirs();
-        }
-        Intent intent = new Intent("com.android.camera.action.CROP");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            intent.setDataAndType(getImageContentUri(mActivity, inputFile), "image/*");
-        } else {
-            intent.setDataAndType(Uri.fromFile(inputFile), "image/*");
-        }
-        intent.putExtra("crop", "true");
-
-        //设置剪裁图片宽高比
-        intent.putExtra("mAspectX", mAspectX);
-        intent.putExtra("mAspectY", mAspectY);
-
-        //设置剪裁图片大小
-        intent.putExtra("mOutputX", mOutputX);
-        intent.putExtra("mOutputY", mOutputY);
-
-        // 是否返回uri
-        intent.putExtra("return-data", false);
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(outputFile));
-        intent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString());
-
-        mActivity.startActivityForResult(intent, REQ_ZOOM_PHOTO);
-    }
-
-    /**
      * 安卓7.0裁剪根据文件路径获取uri
      */
     private Uri getImageContentUri(Context context, File imageFile) {
@@ -284,9 +261,30 @@ public class LQRPhotoSelectUtils {
         }
     }
 
+    /**
+     * 产生图片的路径，带文件夹和文件名，文件名为当前毫秒数
+     */
+    private String generateImgePath() {
+        return getExternalStoragePath() + File.separator + String.valueOf(System.currentTimeMillis()) + ".jpg";
+        //        return Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + String.valueOf(System.currentTimeMillis()) + ".jpg";//测试用
+    }
+
+
+    /**
+     * 获取SD下的应用目录
+     */
+    private String getExternalStoragePath() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(Environment.getExternalStorageDirectory().getAbsolutePath());
+        sb.append(File.separator);
+        String ROOT_DIR = "Android/data/" + mActivity.getPackageName();
+        sb.append(ROOT_DIR);
+        sb.append(File.separator);
+        return sb.toString();
+    }
 
     // 回调接口
-    public interface PhotoSelectListener{
+    public interface PhotoSelectListener {
         void onFinish(File outputFile, Uri outputUri);
     }
 }
