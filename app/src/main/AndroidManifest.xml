@@ -22,7 +22,15 @@
         </activity>
 
         <!-- 适配android 7.0 拍照闪退的处理 ,其中authorities的值要和等下代码中使用的一致就行，其中resource内的文件就是拍照后的共享文件 -->
-
+        <provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="com.example.jinhui.takephotoandtailor.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"/>
+        </provider>
     </application>
 
 </manifest>
