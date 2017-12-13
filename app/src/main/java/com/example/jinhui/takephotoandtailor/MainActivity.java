@@ -3,6 +3,7 @@ package com.example.jinhui.takephotoandtailor;
 import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
@@ -60,12 +61,18 @@ public class MainActivity extends AppCompatActivity {
         // 裁剪
         mLqrPhotoSelectUtils = new LQRPhotoSelectUtils(this, new LQRPhotoSelectUtils.PhotoSelectListener() {
             @Override
-            public void onFinish(File outputFile, Uri outputUri) {
-                // 4、当拍照或从图库选取图片成功后回调
-                mTvPath.setText(outputFile.getAbsolutePath());
-                mTvUri.setText(outputUri.toString());
-                Glide.with(MainActivity.this).load(outputUri).into(mIvPic);
+            public void onFinish(Bitmap bitmap) {
+                mIvPic.setImageBitmap(bitmap);
             }
+
+
+//            @Override
+//            public void onFinish(File outputFile, Uri outputUri) {
+//                // 4、当拍照或从图库选取图片成功后回调
+//                mTvPath.setText(outputFile.getAbsolutePath());
+//                mTvUri.setText(outputUri.toString());
+//                Glide.with(MainActivity.this).load(outputUri).into(mIvPic);
+//            }
         }, 1,1,800,480);
 
         //        mLqrPhotoSelectUtils.setAuthorities("com.lqr.lqrnativepicselect.fileprovider");
