@@ -1,4 +1,4 @@
-package com.example.jinhui.takephotoandtailor;
+package com.example.takephotoandtailor;
 
 import org.junit.Test;
 

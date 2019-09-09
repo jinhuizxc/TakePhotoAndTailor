@@ -1,10 +1,11 @@
-package com.example.jinhui.takephotoandtailor;
+package com.example.takephotoandtailor;
 
 import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -36,47 +37,46 @@ public class MainActivity extends AppCompatActivity {
     private ImageView mIvPic;
 
     private LQRPhotoSelectUtils mLqrPhotoSelectUtils;
+    // 返回bitmap
+    private PhotoSelectUtil photoSelectUtil;
+    // 是否返回bitmap
+    private boolean isBitmap = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initView();
-        init();
+        init(isBitmap);
         initListener();
     }
 
-    private void init() {
-        // 1、创建LQRPhotoSelectUtils（一个Activity对应一个LQRPhotoSelectUtils）
-        // 不裁剪
-//        mLqrPhotoSelectUtils = new LQRPhotoSelectUtils(this, new LQRPhotoSelectUtils.PhotoSelectListener() {
-//            @Override
-//            public void onFinish(File outputFile, Uri outputUri) {
-//                // 4、当拍照或从图库选取图片成功后回调
-//                mTvPath.setText(outputFile.getAbsolutePath());
-//                mTvUri.setText(outputUri.toString());
-//                Glide.with(MainActivity.this).load(outputUri).into(mIvPic);
-//            }
-//        }, false);
-        // 裁剪
+    private void init(boolean isBitmap) {
+        if (isBitmap){
+            // TODO 返回bitmap
+            photoSelectUtil = new PhotoSelectUtil(this, new PhotoSelectUtil.PhotoSelectListener() {
+                @Override
+                public void onFinish(Bitmap bitmap) {
+                    mIvPic.setImageBitmap(bitmap);
+                }
+
+            }, 1,1,800,480);
+        }else {
+            // 1、创建LQRPhotoSelectUtils（一个Activity对应一个LQRPhotoSelectUtils）
+            // TODO 返回图片路径
         mLqrPhotoSelectUtils = new LQRPhotoSelectUtils(this, new LQRPhotoSelectUtils.PhotoSelectListener() {
+
             @Override
-            public void onFinish(Bitmap bitmap) {
-                mIvPic.setImageBitmap(bitmap);
+            public void onFinish(File outputFile, Uri outputUri) {
+                // 4、当拍照或从图库选取图片成功后回调
+                mTvPath.setText(outputFile.getAbsolutePath());
+                mTvUri.setText(outputUri.toString());
+                Glide.with(MainActivity.this).load(outputUri).into(mIvPic);
             }
-
-
-//            @Override
-//            public void onFinish(File outputFile, Uri outputUri) {
-//                // 4、当拍照或从图库选取图片成功后回调
-//                mTvPath.setText(outputFile.getAbsolutePath());
-//                mTvUri.setText(outputUri.toString());
-//                Glide.with(MainActivity.this).load(outputUri).into(mIvPic);
-//            }
-        }, 1,1,800,480);
-
-        //        mLqrPhotoSelectUtils.setAuthorities("com.lqr.lqrnativepicselect.fileprovider");
-        //        mLqrPhotoSelectUtils.setImgPath(Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + String.valueOf(System.currentTimeMillis()) + ".jpg");
+        }, true);
+//        mLqrPhotoSelectUtils.setAuthorities(MainActivity.this.getPackageName() + ".fileprovider");
+//        mLqrPhotoSelectUtils.setImgPath(Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + System.currentTimeMillis() + ".jpg");
+        }
 
     }
 
@@ -124,19 +124,32 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         // 2、在Activity中的onActivityResult()方法里与LQRPhotoSelectUtils关联
-        mLqrPhotoSelectUtils.attachToActivityForResult(requestCode, resultCode, data);
+        if (isBitmap){
+            photoSelectUtil.attachToActivityForResult(requestCode, resultCode, data);
+        }else {
+            mLqrPhotoSelectUtils.attachToActivityForResult(requestCode, resultCode, data);
+        }
     }
 
     @PermissionSuccess(requestCode = LQRPhotoSelectUtils.REQ_TAKE_PHOTO)
     private void takePhoto() {
         Log.e(TAG, "拍照权限请求成功");
-        mLqrPhotoSelectUtils.takePhoto();
+        if (isBitmap){
+            photoSelectUtil.takePhoto();
+        }else {
+            mLqrPhotoSelectUtils.takePhoto();
+        }
     }
 
     @PermissionSuccess(requestCode = LQRPhotoSelectUtils.REQ_SELECT_PHOTO)
     private void selectPhoto() {
         Log.e(TAG, "图库权限请求成功");
-        mLqrPhotoSelectUtils.selectPhoto();
+        if (isBitmap){
+            photoSelectUtil.selectPhoto();
+        }else {
+            mLqrPhotoSelectUtils.selectPhoto();
+        }
+
     }
 
     @PermissionFail(requestCode = LQRPhotoSelectUtils.REQ_TAKE_PHOTO)
@@ -178,7 +191,6 @@ public class MainActivity extends AppCompatActivity {
 
         //添加取消按钮点击事件
         builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
-
             @Override
             public void onClick(DialogInterface dialog, int which) {
             }

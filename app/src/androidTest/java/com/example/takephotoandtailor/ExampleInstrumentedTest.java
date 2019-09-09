@@ -1,4 +1,4 @@
-package com.example.jinhui.takephotoandtailor;
+package com.example.takephotoandtailor;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("com.example.jinhui.takephotoandtailor", appContext.getPackageName());
+        assertEquals("com.example.takephotoandtailor", appContext.getPackageName());
     }
 }

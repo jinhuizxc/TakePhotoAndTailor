@@ -1,10 +1,7 @@
-package com.example.jinhui.takephotoandtailor;
+package com.example.takephotoandtailor;
 
 import android.app.Activity;
-import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -15,18 +12,19 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.io.File;
-import java.net.URL;
 
 /**
  * Created by jinhui on 2017/12/11.
  * <p>
  * CSDN_LQR
  * 图片选择工具类
+ *
+ *  修改返回bitmap
  */
 
-public class LQRPhotoSelectUtils {
+public class PhotoSelectUtil {
 
-    private static final String TAG = LQRPhotoSelectUtils.class.getSimpleName();
+    private static final String TAG = PhotoSelectUtil.class.getSimpleName();
 
     public static final int REQ_TAKE_PHOTO = 10001;
     public static final int REQ_SELECT_PHOTO = 10002;
@@ -51,8 +49,8 @@ public class LQRPhotoSelectUtils {
     private int mAspectX = 1;
     private int mAspectY = 1;
     //剪裁图片大小
-    private int mOutputX = 800;
-    private int mOutputY = 480;
+    private int mOutputX = 300;
+    private int mOutputY = 300;
     PhotoSelectListener mListener;
 
 
@@ -65,7 +63,7 @@ public class LQRPhotoSelectUtils {
      * @param listener   选取图片监听
      * @param shouldCrop 是否裁剪
      */
-    public LQRPhotoSelectUtils(Activity activity, PhotoSelectListener listener, boolean shouldCrop) {
+    public PhotoSelectUtil(Activity activity, PhotoSelectListener listener, boolean shouldCrop) {
         mActivity = activity;
         mListener = listener;
         mShouldCrop = shouldCrop;
@@ -83,7 +81,7 @@ public class LQRPhotoSelectUtils {
      * @param outputX  图片裁剪后的宽度
      * @param outputY  图片裁剪后的高度
      */
-    public LQRPhotoSelectUtils(Activity activity, PhotoSelectListener listener, int aspectX, int aspectY, int outputX, int outputY) {
+    public PhotoSelectUtil(Activity activity, PhotoSelectListener listener, int aspectX, int aspectY, int outputX, int outputY) {
         this(activity, listener, true);
         mAspectX = aspectX;
         mAspectY = aspectY;
@@ -113,23 +111,22 @@ public class LQRPhotoSelectUtils {
 
     /**
      * 拍照
+     * 1.现象
+     *  在项目中调用相机拍照和录像的时候，android4.x,Android5.x,Android6.x均没有问题,在Android7.x下面直接闪退
+     * 2.原因分析
+     * Android升级到7.0后对权限又做了一个更新即不允许出现以file://的形式调用隐式APP，需要用共享文件的形式：content:// URI
+     * 3.解决方案
+     * 下面是打开系统相机的方法，做了android各个版本的兼容:
+     *
      */
     public void takePhoto() {
         imgFile = new File(imgPath);
         if (!imgFile.getParentFile().exists()) {
+            //noinspection ResultOfMethodCallIgnored
             imgFile.getParentFile().mkdirs();
         }
-
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-         /*
-        * 1.现象
-            在项目中调用相机拍照和录像的时候，android4.x,Android5.x,Android6.x均没有问题,在Android7.x下面直接闪退
-           2.原因分析
-            Android升级到7.0后对权限又做了一个更新即不允许出现以file://的形式调用隐式APP，需要用共享文件的形式：content:// URI
-           3.解决方案
-            下面是打开系统相机的方法，做了android各个版本的兼容:
-        * */
-        if (Build.VERSION.SDK_INT >= 24) { // 这里用这种传统的方法无法调起相机
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) { // 这里用这种传统的方法无法调起相机
             imageUri = FileProvider.getUriForFile(mActivity, AUTHORITIES, imgFile);
             Log.e(TAG, "imageUri = " + imageUri);
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); //添加这一句表示对目标应用临时授权该Uri所代表的文件
@@ -152,12 +149,14 @@ public class LQRPhotoSelectUtils {
     public void attachToActivityForResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK) {
             switch (requestCode) {
-                case LQRPhotoSelectUtils.REQ_TAKE_PHOTO: // 拍照
+                case PhotoSelectUtil.REQ_TAKE_PHOTO: // 拍照
+                    // TODO 返回bitmap
                     cropImageUri = Uri.fromFile(cropFile);
                     // 裁剪方法
                     cropPhoto(imageUri, cropImageUri);
                     break;
-                case LQRPhotoSelectUtils.REQ_SELECT_PHOTO:// 图库
+                case PhotoSelectUtil.REQ_SELECT_PHOTO:// 图库
+                    // TODO 返回bitmap
                     if (hasSdcard()) {
                         cropImageUri = Uri.fromFile(cropFile);
                         Uri newUri = Uri.parse(PhotoUtils.getPath(mActivity, data.getData()));
@@ -168,25 +167,15 @@ public class LQRPhotoSelectUtils {
                         Toast.makeText(mActivity, "设备没有SD卡!", Toast.LENGTH_SHORT).show();
                     }
                     break;
-                case LQRPhotoSelectUtils.REQ_ZOOM_PHOTO:// 裁剪
+                case PhotoSelectUtil.REQ_ZOOM_PHOTO:// 裁剪
                     Log.e(TAG, "裁剪");
+                    // TODO 返回bitmap
                     Bitmap bitmap = PhotoUtils.getBitmapFromUri(cropImageUri, mActivity);
                     if (bitmap != null) {
                         if (mListener != null) {
                                 mListener.onFinish(bitmap);
                             }
                     }
-//                    if (data != null) {
-//                        if (cropImageUri != null) {
-//                            //删除拍照的临时照片
-//                            File tmpFile = new File(imgPath);
-//                            if (tmpFile.exists())
-//                                tmpFile.delete();
-//                            if (mListener != null) {
-//                                mListener.onFinish(mOutputFile, cropImageUri);
-//                            }
-//                        }
-//                    }
                     break;
             }
         }
@@ -296,4 +285,5 @@ public class LQRPhotoSelectUtils {
     public interface PhotoSelectListener {
         void onFinish(Bitmap bitmap);
     }
+
 }
