@@ -16,6 +16,12 @@
         android:layout_height="wrap_content"
         android:text="从图库中选取" />
 
+    <Button
+        android:id="@+id/btn_ucrop"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ucrop" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

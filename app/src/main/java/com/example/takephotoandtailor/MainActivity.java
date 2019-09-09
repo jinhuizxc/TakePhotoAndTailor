@@ -16,7 +16,11 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.blankj.utilcode.util.ActivityUtils;
 import com.bumptech.glide.Glide;
+import com.example.takephotoandtailor.activity.SelectPicActivity;
+import com.example.takephotoandtailor.fragment.GalleryFragment;
+import com.yalantis.ucrop.UCrop;
 
 import java.io.File;
 
@@ -35,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView mTvPath;
     private TextView mTvUri;
     private ImageView mIvPic;
+    private Button btn_ucrop;
 
     private LQRPhotoSelectUtils mLqrPhotoSelectUtils;
     // 返回bitmap
@@ -104,6 +109,65 @@ public class MainActivity extends AppCompatActivity {
                 );
             }
         });
+
+        btn_ucrop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                ActivityUtils.startActivity(SelectPicActivity.class);
+                // TODO 未配置读取权限，配置下即可;
+                new GalleryFragment()
+                        .setListener(new GalleryFragment.OnSelectedListener() {
+                            @Override
+                            public void onSelectedImage(String path) {
+                                UCrop.Options options = new UCrop.Options();
+                                // 设置图片处理的格式JPEG
+                                options.setCompressionFormat(Bitmap.CompressFormat.JPEG);
+                                // 设置压缩后的图片精度
+                                options.setCompressionQuality(96);
+
+                                // 得到头像的缓存地址
+                                File dPath = App.getPortraitTmpFile();
+                                // 发起剪切
+                               /* UCrop.of(Uri.fromFile(new File(path)), Uri.fromFile(dPath))
+                                        .withAspectRatio(1, 1) // 1比1比例
+                                        .withMaxResultSize(520, 520) // 返回最大的尺寸
+                                        .withOptions(options) // 相关参数
+                                        .start(MainActivity.this);*/
+                                UCrop.of(Uri.fromFile(new File(path)), Uri.fromFile(dPath))
+                                        .withAspectRatio(16, 9)
+                                        .withMaxResultSize(520, 520)
+                                        .start(MainActivity.this);
+                            }
+                        })
+                        // show 的时候建议使用getChildFragmentManager，
+                        // tag GalleryFragment class 名
+                        .show(getSupportFragmentManager(), GalleryFragment.class.getName());
+            }
+        });
+    }
+
+    /**
+     * 获取到图片进行裁剪
+     *
+     * @param path
+     */
+    private void uCrop(String path) {
+        // 获取
+        UCrop.Options options = new UCrop.Options();
+        // 设置图片处理的格式JPEG
+        options.setCompressionFormat(Bitmap.CompressFormat.JPEG);
+        // 设置压缩后的图片精度
+        options.setCompressionQuality(96);
+
+        // 得到头像的缓存地址
+        File dPath = App.getPortraitTmpFile();
+        Log.e(TAG, "得到头像的缓存地址: " + dPath);
+        // 发起剪切
+        UCrop.of(Uri.fromFile(new File(path)), Uri.fromFile(dPath))
+                .withAspectRatio(1, 1) // 1比1比例
+                .withMaxResultSize(520, 520) // 返回最大的尺寸
+                .withOptions(options) // 相关参数
+                .start(MainActivity.this);
     }
 
     private void initView() {
@@ -112,6 +176,7 @@ public class MainActivity extends AppCompatActivity {
         mTvPath = (TextView) findViewById(R.id.tvPath);
         mTvUri = (TextView) findViewById(R.id.tvUri);
         mIvPic = (ImageView) findViewById(R.id.ivPic);
+        btn_ucrop = (Button) findViewById(R.id.btn_ucrop);
     }
 
     @Override
@@ -129,7 +194,31 @@ public class MainActivity extends AppCompatActivity {
         }else {
             mLqrPhotoSelectUtils.attachToActivityForResult(requestCode, resultCode, data);
         }
+
+        // 处理裁剪结果
+        if (resultCode == RESULT_OK && requestCode == UCrop.REQUEST_CROP) {
+            final Uri resultUri = UCrop.getOutput(data);
+            loadPortrait(resultUri);
+        } else if (resultCode == UCrop.RESULT_ERROR) {
+            final Throwable cropError = UCrop.getError(data);
+            Log.e(TAG, "裁剪出现错误: " + cropError.toString());
+        }
+
     }
+
+    /**
+     * 加载Uri到当前的头像中
+     *
+     * @param uri Uri
+     */
+    private void loadPortrait(Uri uri) {
+        // 得到头像地址
+        String headUrl = uri.getPath();
+        Log.e(TAG, "得到头像地址 ->headUrl = " + headUrl);
+        mTvUri.setText(uri.toString());
+        Glide.with(this).load(uri.toString()).into(mIvPic);
+    }
+
 
     @PermissionSuccess(requestCode = LQRPhotoSelectUtils.REQ_TAKE_PHOTO)
     private void takePhoto() {
@@ -174,7 +263,7 @@ public class MainActivity extends AppCompatActivity {
         //设置标题
         builder.setTitle("权限申请");
         //设置正文
-        builder.setMessage("在设置-应用-虎嗅-权限 中开启相机、存储权限，才能正常使用拍照或图片选择功能");
+        builder.setMessage("在设置-应用-权限 中开启相机、存储权限，才能正常使用拍照或图片选择功能");
 
         //添加确定按钮点击事件
         builder.setPositiveButton("去设置", new DialogInterface.OnClickListener() {//点击完确定后，触发这个事件
@@ -200,4 +289,6 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog dialog = builder.create();
         dialog.show();//显示对话框
     }
+
+
 }
